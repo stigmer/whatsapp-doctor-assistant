@@ -2,6 +2,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: clinic-doctor-assistant
+  org: rakeshreddi098
 spec:
   description: >
     Doctor-facing WhatsApp assistant for the clinic: manages the schedule and
@@ -61,4 +62,5 @@ spec:
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
+        org: stigmer
         slug: postgres
