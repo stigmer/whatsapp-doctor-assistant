@@ -64,3 +64,27 @@ spec:
         kind: mcp_server
         org: stigmer
         slug: postgres
+      # WhatsApp channels have no human-in-the-loop approval surface, so any
+      # gated tool would stall the conversation forever. Un-gate every postgres
+      # tool for this agent (policy layer 3 overrides the connect-time
+      # classifier defaults). Safety is enforced by the doctor_role database
+      # credentials in the channel Environment, not by tool approvals.
+      tool_approval_overrides:
+        - tool_name: execute_sql
+          requires_approval: false
+        - tool_name: list_schemas
+          requires_approval: false
+        - tool_name: list_objects
+          requires_approval: false
+        - tool_name: get_object_details
+          requires_approval: false
+        - tool_name: explain_query
+          requires_approval: false
+        - tool_name: analyze_workload_indexes
+          requires_approval: false
+        - tool_name: analyze_query_indexes
+          requires_approval: false
+        - tool_name: analyze_db_health
+          requires_approval: false
+        - tool_name: get_top_queries
+          requires_approval: false
