@@ -15,37 +15,55 @@ have already hit folded in where they bite.
 > part in `docs/friction-log.md` — the Meta setup effort is a first-class
 > data point for the clinic onboarding story.
 
+## What already exists (from the first WhatsApp dogfood, 2026-07-17)
+
+The expensive one-time Meta groundwork is done and is being reused:
+
+- The **Meta Business portfolio** ("Stigmer") exists with complete business
+  info and a confirmed business email — the fresh-portfolio policy gate
+  that costs ~15 minutes of confusing errors is already cleared.
+- A **live privacy policy URL** exists (`stigmer.ai/privacy`) — publishing
+  a new Meta app is now a two-minute step, not a build-a-page detour.
+- A **system user** with admin role already exists in Business settings —
+  new apps only need to be added to it as assets.
+- A published Meta app ("Workshop") already serves another Stigmer org's
+  channel. **It cannot serve the clinic**: a Meta app has exactly one
+  webhook callback, and that app's webhook is already bound to the other
+  org's Channel App. The clinic gets its own app under the same portfolio.
+
+What is still genuinely new for the clinic: **one new Meta app**, **new
+number(s)** (or the new app's test number), and everything on the Stigmer
+side in the clinic org (`rakeshreddi098`).
+
 ## What you are setting up
 
-One Meta app serves both numbers; each number selects a different agent with
-different database credentials. The number IS the role boundary.
+One new Meta app serves both clinic numbers; each number selects a
+different agent with different database credentials. The number IS the role
+boundary.
 
 ```
 patient's phone ──> PUBLIC number  ──> clinic-patient-whatsapp  ──> patient agent ──> patient_role
 doctor's phone  ──> PRIVATE number ──> clinic-doctor-whatsapp   ──> doctor agent  ──> doctor_role
-                     (both numbers on one WABA, one Meta app, one Channel App)
+        (both numbers on one clinic WABA, one new Meta app, one Channel App —
+         all under the existing Stigmer business portfolio)
 ```
 
 A WhatsApp number serves **one agent per Meta app** — so the same app can
 serve both channels, but each channel needs its own number. During the pilot,
-Meta's built-in test number can stand in as the doctor's private line.
+the new app's built-in test number can stand in as the doctor's private line.
 
 ## Before you start
 
-- [ ] A [Meta Business portfolio](https://business.facebook.com/) with
-      **complete business information** — legal name, address, phone,
-      website, and a **confirmed** business email. Meta refuses to create a
-      WhatsApp Business account until these are filled in (the error
-      mentions "policy requirements").
-- [ ] **Two phone numbers** that are **not registered on any WhatsApp mobile
-      app** (a number on the Cloud API cannot also live on a phone's
-      WhatsApp). One is the clinic's public line, one the private admin
-      line. Pilot shortcut: use Meta's test number for the admin line.
-- [ ] A **live privacy policy URL** on a website you control — Meta requires
-      it to publish the app, and an unpublished app silently drops real
-      messages.
-- [ ] Stigmer org admin access (Channel Apps, Environments, Agents) and
-      credits in the org — WhatsApp conversations bill to it.
+- [ ] Access to the existing **Meta Business portfolio** (business.facebook.com)
+      and to [developers.facebook.com](https://developers.facebook.com/apps)
+      under the same Meta account that ran the first dogfood.
+- [ ] **One or two phone numbers** that are **not registered on any WhatsApp
+      mobile app** (a number on the Cloud API cannot also live on a phone's
+      WhatsApp). The clinic's public line is required; for the private admin
+      line the new app's test number works during the pilot.
+- [ ] Admin access to the clinic Stigmer org (`rakeshreddi098`) — Channel
+      Apps, Environments, Agents — and credits in it (WhatsApp conversations
+      bill to the org).
 - [ ] The two per-role Postgres connection URLs from the Supabase setup
       (see `schema/clinic.sql`). Keep them out of this repo; they are pasted
       into the Stigmer console only.
@@ -61,7 +79,7 @@ and where it goes:
 
 | Placeholder | Where to get it | Goes into |
 | --- | --- | --- |
-| `your-org` | Your Stigmer org slug (console URL / org switcher) | `metadata.org` + every `*_ref.org` in all four `channel/*.yaml` |
+| `your-org` | The clinic Stigmer org slug — `rakeshreddi098` (already pinned in the agent manifests) | `metadata.org` + every `*_ref.org` in all four `channel/*.yaml` |
 | `<your-meta-channel-app>` | Stigmer console → **Settings → Channel Apps** → the app's slug after Part 3 | `spec.app_ref.slug` in both `*-channel.yaml` |
 | `<PUBLIC_NUMBER_PHONE_NUMBER_ID>` | Meta app → **API Setup**: the numeric ID next to the public number (NOT the phone number itself) | `spec.whatsapp.phone_number_id` in `patient-channel.yaml` |
 | `<ADMIN_NUMBER_PHONE_NUMBER_ID>` | Meta app → **API Setup**: the numeric ID next to the admin/test number | `spec.whatsapp.phone_number_id` in `doctor-channel.yaml` |
@@ -71,7 +89,14 @@ and where it goes:
 > **Passwords with `$`**: paste connection URLs exactly, never through a
 > shell that interpolates variables.
 
-## Part 1 — WhatsApp Business account and the two numbers
+## Part 1 — Clinic WhatsApp Business account and the two numbers
+
+The portfolio's business info is complete, so WABA creation sails through
+the policy gate that stalled the first dogfood. Create a **separate WABA
+for the clinic** rather than adding numbers to the existing "Workshop
+Assistant" WABA: webhook subscriptions are per app-and-WABA, so a shared
+WABA would deliver clinic messages to the workshop org's app too (and vice
+versa).
 
 In [Business settings](https://business.facebook.com/settings) →
 **Accounts → WhatsApp accounts**:
@@ -88,38 +113,45 @@ In [Business settings](https://business.facebook.com/settings) →
 4. Note the **WABA ID** shown on the account — needed for the webhook
    subscription check in Part 3.
 
-## Part 2 — Meta app: create, publish, token
+## Part 2 — New Meta app: create, publish, token
+
+The existing "Workshop" app cannot be reused — a Meta app has one webhook
+callback, and Workshop's is bound to the workshop org's Channel App. But
+with the portfolio, privacy policy, and system user in place, a new app is
+minutes, not the ~75 minutes the first one took.
 
 On [developers.facebook.com](https://developers.facebook.com/apps):
 
 1. Create an app; pick the use case that mentions **WhatsApp** ("Connect
-   with customers through WhatsApp") and link it to your business portfolio
-   when prompted. Ignore "Become a Partner" / "Become a Tech Provider" —
-   that track drags you into App Review.
+   with customers through WhatsApp") and link it to the existing business
+   portfolio when prompted. Ignore "Become a Partner" / "Become a Tech
+   Provider" — that track drags you into App Review.
 2. Under **Use cases → Customize → Integrate with API**, open **Step 2 —
-   Production setup** and make sure your real WhatsApp Business account and
-   numbers are attached (not only the test account Meta creates). Skip the
-   webhook section for now (the address comes from Stigmer in Part 3) and
-   skip the payment method (the assistant only ever replies; service
+   Production setup** and attach the **clinic WABA** from Part 1 (not the
+   test account Meta creates, and not the Workshop Assistant WABA). Skip
+   the webhook section for now (the address comes from Stigmer in Part 3)
+   and skip the payment method (the assistant only ever replies; service
    replies need no payment method).
 3. From **App settings → Basic**, copy the **App ID** and **App secret**.
-4. **Publish the app.** Set the **Privacy Policy URL** in **App settings →
-   Basic**, then publish from the **Publish** sidebar entry. No App Review
-   is involved for an app serving your own WABA.
+4. **Publish the app.** In **App settings → Basic**, set the **Privacy
+   Policy URL** to the existing `https://stigmer.ai/privacy`, then publish
+   from the **Publish** sidebar entry. No App Review is involved for an app
+   serving your own WABA.
 
    > **Trap — invisible failure.** An unpublished app delivers only test
    > webhooks: the webhook verifies, outbound sends work, but real incoming
    > messages are silently dropped. If the assistant stays silent later,
    > check the publish state first.
 
-5. Create a **permanent access token** from a system user in
+5. Get a **permanent access token** from the **existing system user** in
    [Business settings](https://business.facebook.com/settings) →
-   **Users → System users**:
-   - Add a system user (e.g. `stigmer-runner`), role **Admin**.
-   - **Add assets** twice: your **app** (full control) and your **WhatsApp
-     account** (full control).
-   - **Generate new token**: your app, expiration **Never**, permissions at
-     least `whatsapp_business_messaging` and `whatsapp_business_management`.
+   **Users → System users** (created during the first dogfood — no new
+   system user needed):
+   - **Add assets** twice: the **new app** (full control) and the **clinic
+     WABA** (full control).
+   - **Generate new token**: the new app, expiration **Never**, permissions
+     at least `whatsapp_business_messaging` and
+     `whatsapp_business_management`.
    - Copy it — Meta shows it once.
 
    > **Trap — the temporary token.** Do not use the token from the app
@@ -129,7 +161,9 @@ On [developers.facebook.com](https://developers.facebook.com/apps):
 
 ## Part 3 — Register the Channel App in Stigmer and wire the webhook
 
-In the Stigmer console, **Settings → Channel Apps → Register channel app**:
+In the Stigmer console — **switched to the clinic org (`rakeshreddi098`)**,
+not the workshop org where the first dogfood's Channel App lives — open
+**Settings → Channel Apps → Register channel app**:
 
 1. Provider **WhatsApp**; pick a name (this becomes the
    `<your-meta-channel-app>` slug for the manifests).
@@ -192,9 +226,9 @@ In `channel/patient-channel.yaml` and `channel/doctor-channel.yaml`, replace
   panel. The doctor channel takes the test number's ID if you went that
   route.
 
-Then apply (make sure the CLI context points at the right org — the agents
-and Environments live in the org you set up, not necessarily the CLI's
-default):
+Then apply (make sure the CLI context points at the clinic org
+`rakeshreddi098` — the CLI's default context has been `workshop`, which is
+the wrong org for everything in this repo):
 
 ```bash
 stigmer apply -f channel/patient-channel.yaml
@@ -288,7 +322,9 @@ SQL error text.
 
 | Trap | Symptom | Fix |
 | --- | --- | --- |
-| App not published | Webhook verifies, sends work, inbound silently dropped | Publish the app (needs privacy policy URL) |
+| Reusing the existing "Workshop" Meta app | Repointing its webhook to the clinic Channel App kills the workshop org's channel | New Meta app for the clinic (Part 2); one app = one webhook |
+| Adding clinic numbers to the existing WABA | Both apps receive both orgs' inbound webhooks | Separate clinic WABA (Part 1) |
+| App not published | Webhook verifies, sends work, inbound silently dropped | Publish the app (privacy policy URL: `stigmer.ai/privacy` exists) |
 | Temporary token used | Channel healthy for a day, then replies fail with no signal | System-user token, expiration Never |
 | Environment left private | First tool-using message refused; channel card warns | Set visibility to Organization |
 | Supabase RLS enabled via dashboard nudge | Both agents see zero schedule rows, no error | Re-run `schema/clinic.sql` (disables RLS explicitly) |
