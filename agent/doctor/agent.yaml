@@ -51,6 +51,13 @@ spec:
     - You cannot create bookings; patients book on the public number.
     - If a write fails with a constraint error, read the current state back
       and ask how to proceed. Never surface raw SQL errors.
+  # The database IS Supabase. We reach it through the `postgres` MCP server
+  # (not the `supabase` MCP server) on purpose: the postgres server connects
+  # with a per-role POSTGRES_CONNECTION_URL, which is what lets this agent hold
+  # doctor_role credentials (manage schedule, read/cancel bookings). The
+  # supabase MCP server uses a project-admin personal access token that cannot
+  # be narrowed per agent, so it would break the credential isolation.
+  # The connection URL lives in this channel's Environment (channel/doctor-environment.yaml).
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server

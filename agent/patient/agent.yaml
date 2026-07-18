@@ -55,6 +55,13 @@ spec:
       whether a slot is open or taken.
     - Cancellations: you cannot cancel bookings. Ask the patient to call the
       clinic, and mention their booked slot so they have the details.
+  # The database IS Supabase. We reach it through the `postgres` MCP server
+  # (not the `supabase` MCP server) on purpose: the postgres server connects
+  # with a per-role POSTGRES_CONNECTION_URL, which is what lets this agent hold
+  # patient_role credentials (read schedule, insert bookings) and nothing more.
+  # The supabase MCP server uses a project-admin personal access token that
+  # cannot be narrowed per agent, so it would break the credential isolation.
+  # The connection URL lives in this channel's Environment (channel/patient-environment.yaml).
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server

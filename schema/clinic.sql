@@ -76,6 +76,20 @@ create table bookings (
     )
 );
 
+-- ----------------------------------------------------------------------------
+-- RLS is intentionally OFF. Access control in this design is role grants
+-- (see Grants section below), and the Data API cannot reach these tables
+-- anyway: all privileges are revoked from public, and anon/authenticated
+-- hold no grants. The Supabase dashboard nudges operators to "Enable RLS" —
+-- doing so with no policies silently blocks BOTH agent roles (default deny:
+-- reads return zero rows, writes are rejected). These statements make the
+-- intent explicit and repair that misclick on re-run.
+-- ----------------------------------------------------------------------------
+
+alter table schedules           disable row level security;
+alter table schedule_exceptions disable row level security;
+alter table bookings            disable row level security;
+
 -- The double-booking invariant: at most one CONFIRMED booking per slot,
 -- no matter what the agent writes. A violation surfaces to the agent as an
 -- insert error, which it answers by offering other slots.

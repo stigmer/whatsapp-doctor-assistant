@@ -47,6 +47,20 @@ stored; the schema has a single standing weekly schedule plus date
 exceptions. The doctor agent is instructed to be honest about this and offer
 to apply now or be reminded later. Revisit if pilots hit it often.
 
+## 2026-07-18 — Supabase "Enable RLS" nudge silently breaks the grant model
+
+**Severity: onboarding trap (resolved).** The Supabase dashboard warns loudly
+about tables without RLS and nudges the operator to enable it. Enabling RLS
+with **no policies** default-denies the two agent roles: reads return zero
+rows (no error at all!) and writes fail with an RLS violation — it looked
+like the bootstrap schedule was never inserted. Our access model is role
+grants, and the Data API can't reach the tables anyway (`public`/`anon` hold
+no grants), so RLS adds nothing here. Fixed by adding explicit
+`disable row level security` statements to `schema/clinic.sql` (self-healing
+on re-run) with a comment explaining the intent. **Runbook**: tell operators
+to ignore the RLS banner for clinic tables; **Signal**: a first-class records
+primitive would remove this entire class of managed-store footguns.
+
 ## Open items to watch during the pilot
 
 - Meta app + second number setup effort (the doctor line) — record the
@@ -54,4 +68,6 @@ to apply now or be reminded later. Revisit if pilots hit it often.
 - Whether the ~25s WhatsApp typing-indicator window is long enough for
   availability answers that need several SQL reads.
 - Whether constraint-violation error text from the postgres MCP server is
-  clean enough for the agent to recognize reliably (bench-test in T02).
+  clean enough for the agent to recognize reliably (raw Postgres errors
+  verified clean and specific in T02 via psql; watch how the MCP server
+  relays them during console/WhatsApp use).
