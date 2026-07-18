@@ -66,7 +66,9 @@ agent/doctor/   Doctor assistant: manifest + instructions (private admin number)
 channel/        Two AgentChannel + two Environment manifests
 schema/         clinic.sql — tables, constraints, roles, grants, bootstrap data
 conversations/  Conversation design: happy paths and edge-case scripts
-docs/           Friction log; setup notes and onboarding runbook to follow
+docs/           Friction log; connect-whatsapp-runbook.md — operator guide to
+                put both numbers live (Meta app, Channel App, environments,
+                connect flow, live acceptance tests)
 ```
 
 ## Status

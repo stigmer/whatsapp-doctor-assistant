@@ -4,11 +4,14 @@
 # selects this channel, and this channel serves only the patient agent with
 # only patient_role credentials. Apply with `stigmer apply -f`, then complete
 # the number verification through the console's connect flow.
+#
+# Fill every placeholder per docs/connect-whatsapp-runbook.md ("Values to
+# collect" table), then follow Parts 5-6 of the runbook to apply and connect.
 apiVersion: agentic.stigmer.ai/v1
 kind: AgentChannel
 metadata:
   name: clinic-patient-whatsapp
-  org: your-org # <- your Stigmer org slug
+  org: your-org # <- your Stigmer org slug (same value in every org field below)
 spec:
   agent_ref:
     kind: agent
@@ -16,12 +19,16 @@ spec:
     slug: clinic-patient-assistant
   enabled: true
   whatsapp:
-    phone_number_id: "<PUBLIC_NUMBER_PHONE_NUMBER_ID>" # Meta app -> API Setup
+    # Meta app -> API Setup: the numeric ID next to the PUBLIC number,
+    # NOT the phone number itself. Runbook Part 2.
+    phone_number_id: "<PUBLIC_NUMBER_PHONE_NUMBER_ID>"
   app_ref:
     kind: channel_app
     org: your-org
-    slug: <your-meta-channel-app> # Settings -> Channel Apps
+    slug: <your-meta-channel-app> # Stigmer console -> Settings -> Channel Apps (runbook Part 3)
   environment_refs:
+    # patient_role credentials ONLY — never bind clinic-doctor-db here;
+    # the Environment is the privilege boundary.
     - kind: environment
       org: your-org
       slug: clinic-patient-db

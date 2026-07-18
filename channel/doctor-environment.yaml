@@ -2,8 +2,15 @@
 # doctor_role created by schema/clinic.sql (schedule read/write, bookings
 # read/cancel). Bound ONLY to the private admin number's channel.
 #
+# NEVER commit the real URL to this (public) repo. Either fill the value in
+# the console directly, or copy this file outside the repo, fill it, apply,
+# and delete the copy — see docs/connect-whatsapp-runbook.md Part 4.
+# Username form is doctor_role.<project-ref>; passwords containing `$` must
+# be pasted without shell interpolation.
+#
 # Set visibility to Organization in the console after applying: a private
-# Environment cannot serve WhatsApp users.
+# Environment cannot serve WhatsApp users (the channel card warns, and the
+# first tool-using message is refused).
 apiVersion: agentic.stigmer.ai/v1
 kind: Environment
 metadata:
