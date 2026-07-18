@@ -61,24 +61,40 @@ on re-run) with a comment explaining the intent. **Runbook**: tell operators
 to ignore the RLS banner for clinic tables; **Signal**: a first-class records
 primitive would remove this entire class of managed-store footguns.
 
-## 2026-07-18 — Private agent fails channel messages with an opaque error
+## 2026-07-18 — Org-visible agents don't work on channels (platform bug)
 
-**Severity: onboarding trap (resolved).** First live WhatsApp message to the
-connected patient channel failed with
-`[ConnectError] [permission_denied] unauthorized to get Agent Instance`.
-Channel conversations run as a synthetic guest identity in the org
-(`stgm_channel|<org>`), and the agent had been applied with default
-private (owner-only) visibility — so the guest could not view the agent
-instance. The bound Environment was private too (its own known trap, but
-it only *warns*; the private agent is what hard-fails). The owner's console
-bench tests all pass, which disguises the misconfiguration as a platform
-bug. Fix: set both agents AND both Environments to Organization visibility.
-**Runbook**: Part 4 now covers agent visibility alongside Environment
-visibility. **Signal**: the docs only call out Environment visibility; the
-connect flow could validate at connect time that the agent (and bound
-Environments) are org-visible and warn on the channel card, instead of
-failing the first real message with an authz error that names an internal
-resource.
+**Severity: platform bug (worked around live).** First live WhatsApp message
+to the connected patient channel failed with
+`[ConnectError] [permission_denied] unauthorized to get Agent Instance` —
+and kept failing even though the console showed the agent's visibility as
+**Organization** (which was true: the org-viewer FGA tuple existed from
+creation).
+
+Root cause, confirmed against the FGA store: every channel conversation
+runs as the org's synthetic channel account (`stgm_channel|<org>`), which
+holds only the org **guest** relation — deliberately not membership (the
+visitor permission ceiling). But agent Organization visibility grants
+viewer to `organization#member` only. Guest ≠ member, so the channel
+account can see nothing below public: **private AND org-visible agents both
+fail on channels; only public agents work.** The first dogfood's agent was
+`visibility_public`, which masked the gap. The owner's console bench tests
+pass at any visibility (owner access), disguising this as a user error.
+
+Workaround applied (direct FGA write, matching the model's documented
+`[identity_account]` viewer shape): explicit viewer tuples for the channel
+account on both clinic agents. Org visibility stays as-is; nothing becomes
+public.
+
+Also hit alongside: the console offers no way to *edit* an agent's
+visibility after creation (the field displays but cannot be changed from
+the frontend) — the manifest `metadata.visibility` path is the only lever.
+
+**Signal (double)**: (1) the channel connect flow should grant the channel
+account viewer access to the agent at connect time (exactly like
+`grantCredentialsEnvironmentAccess` already does for the credentials
+Environment), or the broker should mint against a principal that inherits
+the agent's org visibility; (2) agent visibility should be editable from
+the console.
 
 ## Open items to watch during the pilot
 

@@ -207,15 +207,22 @@ Then, for **both** Environments:
       Environment cannot serve WhatsApp users — the channel card will warn,
       and the first tool-using message will be refused.
 
-And — learned live on 2026-07-18 — for **both agents** too:
+And — learned live on 2026-07-18 — a **platform gap around agent
+visibility** (open bug at the time of writing):
 
-- [ ] Set each agent's visibility/sharing to **Organization** in the
-      console. Every WhatsApp conversation runs as a synthetic **guest**
-      identity in the org (`stgm_channel|<org>`), not as the operator who
-      applied the agent. A private (owner-only) agent fails every channel
-      message with `[permission_denied] unauthorized to get Agent Instance`
-      — even though the owner's own console bench tests work fine, which
-      makes this easy to misread as a platform bug.
+- Every WhatsApp conversation runs as the org's synthetic **channel
+  account** (`stgm_channel|<org>`), which holds only the org **guest**
+  relation — deliberately not membership. Agent **Organization** visibility
+  grants viewer to org *members* only, so channel messages to an
+  org-visible (or private) agent fail with
+  `[permission_denied] unauthorized to get Agent Instance` — even though
+  the owner's console bench tests pass and the UI correctly shows
+  "Organization".
+- Only **public** agents work out of the box (the first dogfood's agent
+  was `visibility_public`, which masked the gap).
+- Interim options until the platform auto-grants at connect time: set the
+  agent to public visibility, or grant the channel account an explicit
+  FGA viewer tuple on each agent (what we did — see the friction log).
 
 > **Trap — Supabase RLS banner.** If you visit the Supabase dashboard it
 > nags about tables without RLS. **Ignore it for the clinic tables**:
@@ -337,7 +344,7 @@ SQL error text.
 | App not published | Webhook verifies, sends work, inbound silently dropped | Publish the app (privacy policy URL: `stigmer.ai/privacy` exists) |
 | Temporary token used | Channel healthy for a day, then replies fail with no signal | System-user token, expiration Never |
 | Environment left private | First tool-using message refused; channel card warns | Set visibility to Organization |
-| Agent left private | Every WhatsApp message fails: `unauthorized to get Agent Instance` (console tests work — the owner has access, the channel guest identity does not) | Set the agent's visibility to Organization |
+| Agent not visible to the channel account (org visibility is NOT enough — platform gap) | Every WhatsApp message fails: `unauthorized to get Agent Instance` (console tests pass — the owner has access, the org-guest channel account does not) | Make the agent public, or grant the channel account an explicit viewer tuple per agent |
 | Supabase RLS enabled via dashboard nudge | Both agents see zero schedule rows, no error | Re-run `schema/clinic.sql` (disables RLS explicitly) |
 | Number already serving an agent via this app | Connect dialog refuses and names the number | One number = one agent per app; use the other number |
 | `$` in DB passwords | Auth failures after copy/paste through a shell | Paste URLs exactly, no shell interpolation |
