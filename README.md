@@ -26,14 +26,28 @@ schedule-aware responses and books slots through its tools. See the
 [Connect an Agent to WhatsApp](https://stigmer.ai/docs/guides/channels/connect-whatsapp)
 guide for the underlying channel mechanics.
 
+## Architecture (decided)
+
+- **No code, anywhere.** The assistant is YAML manifests + one declarative
+  schema file. Nothing is built or hosted by the assistant builder.
+- **Business records** (schedule, exceptions, bookings) live in a managed
+  Postgres (Supabase) reached through Stigmer's seedpack MCP server. Invariants
+  like double-booking prevention are database constraints, not prompt text.
+- **The doctor manages the schedule over WhatsApp itself** — texting the same
+  assistant from their registered number ("closed this Thursday"), with every
+  change confirmed before it is written. Patients get read-and-book.
+- **Conversation is never the system of record**; tools are the only write
+  path, and the store behind them is swappable per customer (e.g., Google
+  Calendar for clinics that already use one).
+
 ## Repository layout
 
 ```
 agent/          Agent definition: manifest and instructions
-channel/        AgentChannel manifest for the WhatsApp connection
-schedule/       Schedule and booking tooling (store, MCP config, templates)
+channel/        AgentChannel + Environment manifests for the WhatsApp connection
+schema/         Declarative schema for the records store (schedules, bookings)
 conversations/  Conversation design: happy paths and edge-case scripts
-docs/           Setup notes, onboarding runbook, decisions
+docs/           Setup notes, onboarding runbook, friction log
 ```
 
 Folders are added as the assistant takes shape — this repository starts empty
