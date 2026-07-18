@@ -207,6 +207,16 @@ Then, for **both** Environments:
       Environment cannot serve WhatsApp users — the channel card will warn,
       and the first tool-using message will be refused.
 
+And — learned live on 2026-07-18 — for **both agents** too:
+
+- [ ] Set each agent's visibility/sharing to **Organization** in the
+      console. Every WhatsApp conversation runs as a synthetic **guest**
+      identity in the org (`stgm_channel|<org>`), not as the operator who
+      applied the agent. A private (owner-only) agent fails every channel
+      message with `[permission_denied] unauthorized to get Agent Instance`
+      — even though the owner's own console bench tests work fine, which
+      makes this easy to misread as a platform bug.
+
 > **Trap — Supabase RLS banner.** If you visit the Supabase dashboard it
 > nags about tables without RLS. **Ignore it for the clinic tables**:
 > access control is role grants, and enabling RLS with no policies silently
@@ -327,6 +337,7 @@ SQL error text.
 | App not published | Webhook verifies, sends work, inbound silently dropped | Publish the app (privacy policy URL: `stigmer.ai/privacy` exists) |
 | Temporary token used | Channel healthy for a day, then replies fail with no signal | System-user token, expiration Never |
 | Environment left private | First tool-using message refused; channel card warns | Set visibility to Organization |
+| Agent left private | Every WhatsApp message fails: `unauthorized to get Agent Instance` (console tests work — the owner has access, the channel guest identity does not) | Set the agent's visibility to Organization |
 | Supabase RLS enabled via dashboard nudge | Both agents see zero schedule rows, no error | Re-run `schema/clinic.sql` (disables RLS explicitly) |
 | Number already serving an agent via this app | Connect dialog refuses and names the number | One number = one agent per app; use the other number |
 | `$` in DB passwords | Auth failures after copy/paste through a shell | Paste URLs exactly, no shell interpolation |

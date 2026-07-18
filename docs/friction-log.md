@@ -61,6 +61,25 @@ on re-run) with a comment explaining the intent. **Runbook**: tell operators
 to ignore the RLS banner for clinic tables; **Signal**: a first-class records
 primitive would remove this entire class of managed-store footguns.
 
+## 2026-07-18 — Private agent fails channel messages with an opaque error
+
+**Severity: onboarding trap (resolved).** First live WhatsApp message to the
+connected patient channel failed with
+`[ConnectError] [permission_denied] unauthorized to get Agent Instance`.
+Channel conversations run as a synthetic guest identity in the org
+(`stgm_channel|<org>`), and the agent had been applied with default
+private (owner-only) visibility — so the guest could not view the agent
+instance. The bound Environment was private too (its own known trap, but
+it only *warns*; the private agent is what hard-fails). The owner's console
+bench tests all pass, which disguises the misconfiguration as a platform
+bug. Fix: set both agents AND both Environments to Organization visibility.
+**Runbook**: Part 4 now covers agent visibility alongside Environment
+visibility. **Signal**: the docs only call out Environment visibility; the
+connect flow could validate at connect time that the agent (and bound
+Environments) are org-visible and warn on the channel card, instead of
+failing the first real message with an authz error that names an internal
+resource.
+
 ## Open items to watch during the pilot
 
 - Meta app + second number setup effort (the doctor line) — record the
