@@ -28,30 +28,46 @@ guide for the underlying channel mechanics.
 
 ## Architecture (decided)
 
-- **No code, anywhere.** The assistant is YAML manifests + one declarative
-  schema file. Nothing is built or hosted by the assistant builder.
-- **Business records** (schedule, exceptions, bookings) live in a managed
-  Postgres (Supabase) reached through Stigmer's seedpack MCP server. Invariants
-  like double-booking prevention are database constraints, not prompt text.
-- **The doctor manages the schedule over WhatsApp itself** — texting the same
-  assistant from their registered number ("closed this Thursday"), with every
-  change confirmed before it is written. Patients get read-and-book.
+The governing rule: **prompts shape behavior; credentials and constraints
+enforce security.** Anything that must hold 100% of the time never lives in
+agent instructions.
+
+- **Two agents, two WhatsApp numbers.** Patients text the clinic's public
+  number and reach the *patient assistant* (availability + booking). The
+  doctor texts a private admin number and reaches the *doctor assistant*
+  (schedule management, day's bookings). The number IS the role boundary —
+  Meta verifies the sender, the number selects the agent.
+- **Credential = capability.** Both agents share one managed Postgres
+  (Supabase), but each channel's Environment carries a connection URL for a
+  different database role: `patient_role` can only read the schedule and
+  insert bookings; `doctor_role` manages the schedule. The patient agent
+  *physically cannot* modify the schedule, whatever the model does.
+- **Constraint = invariant.** Double-booking prevention and clinic-hours
+  bounds are database constraints in `schema/clinic.sql`, not prompt text.
+- **No code, anywhere.** The whole assistant is YAML manifests + one
+  declarative schema file. Nothing is built or hosted by the assistant
+  builder.
+- **The doctor manages the schedule over WhatsApp itself** — texting their
+  assistant in plain language ("closed this Thursday"), with every change
+  confirmed before it is written.
 - **Conversation is never the system of record**; tools are the only write
   path, and the store behind them is swappable per customer (e.g., Google
   Calendar for clinics that already use one).
+- **Attribution rides platform-verified identity.** Stigmer surfaces the
+  sender's channel-verified WhatsApp number to the agent, so bookings are
+  recorded against the real sender — patients are never asked to type
+  (or able to fake) their own number.
 
 ## Repository layout
 
 ```
-agent/          Agent definition: manifest and instructions
-channel/        AgentChannel + Environment manifests for the WhatsApp connection
-schema/         Declarative schema for the records store (schedules, bookings)
+agent/patient/  Patient assistant: manifest + instructions (public number)
+agent/doctor/   Doctor assistant: manifest + instructions (private admin number)
+channel/        Two AgentChannel + two Environment manifests
+schema/         clinic.sql — tables, constraints, roles, grants, bootstrap data
 conversations/  Conversation design: happy paths and edge-case scripts
-docs/           Setup notes, onboarding runbook, friction log
+docs/           Friction log; setup notes and onboarding runbook to follow
 ```
-
-Folders are added as the assistant takes shape — this repository starts empty
-by design and grows with the build.
 
 ## Status
 

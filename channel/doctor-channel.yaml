@@ -1,0 +1,26 @@
+# The clinic's PRIVATE admin WhatsApp number -> the doctor assistant.
+#
+# Share this number only with the doctor/clinic staff. During the pilot a
+# Meta test number works here. Apply with `stigmer apply -f`, then complete
+# the number verification through the console's connect flow.
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentChannel
+metadata:
+  name: clinic-doctor-whatsapp
+  org: your-org # <- your Stigmer org slug
+spec:
+  agent_ref:
+    kind: agent
+    org: your-org
+    slug: clinic-doctor-assistant
+  enabled: true
+  whatsapp:
+    phone_number_id: "<ADMIN_NUMBER_PHONE_NUMBER_ID>" # Meta app -> API Setup
+  app_ref:
+    kind: channel_app
+    org: your-org
+    slug: <your-meta-channel-app> # Settings -> Channel Apps
+  environment_refs:
+    - kind: environment
+      org: your-org
+      slug: clinic-doctor-db

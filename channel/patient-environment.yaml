@@ -1,0 +1,19 @@
+# Credentials for the PATIENT agent's tools: a Postgres connection URL for the
+# patient_role created by schema/clinic.sql. This is the deterministic half of
+# the privilege split — whatever the model does, this connection can only read
+# the schedule and insert bookings.
+#
+# Set visibility to Organization in the console after applying: a private
+# Environment cannot serve WhatsApp users.
+apiVersion: agentic.stigmer.ai/v1
+kind: Environment
+metadata:
+  name: clinic-patient-db
+  org: your-org # <- your Stigmer org slug
+spec:
+  description: "Clinic records access for the patient assistant (patient_role: read schedule, insert bookings)"
+  data:
+    POSTGRES_CONNECTION_URL:
+      value: "postgresql://patient_role:CHANGE_ME_PATIENT@<project-pooler-host>:5432/postgres"
+      is_secret: true
+      description: "Supabase Postgres connection URL for patient_role"
