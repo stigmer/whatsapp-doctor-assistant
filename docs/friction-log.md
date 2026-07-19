@@ -89,12 +89,21 @@ Also hit alongside: the console offers no way to *edit* an agent's
 visibility after creation (the field displays but cannot be changed from
 the frontend) — the manifest `metadata.visibility` path is the only lever.
 
+> **Correction (2026-07-19).** The "not editable" claim was a
+> discoverability failure, not a missing feature. Visibility editing has
+> existed since mid-June behind the agent detail page's kebab menu →
+> **Manage access** → *General access* (interactive selector, `can_edit`
+> gated, full FGA tuple reconciliation). What was inert was the header
+> visibility chip, which read as "display-only." Fixed 2026-07-19: the
+> chip is now a shortcut that opens the Manage access dialog.
+
 **Signal (double)**: (1) the channel connect flow should grant the channel
 account viewer access to the agent at connect time (exactly like
 `grantCredentialsEnvironmentAccess` already does for the credentials
 Environment), or the broker should mint against a principal that inherits
 the agent's org visibility; (2) agent visibility should be editable from
-the console.
+the console — *resolved per the correction above: it already was; the
+entry point is now discoverable from the header chip.*
 
 ## Open items to watch during the pilot
 
