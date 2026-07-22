@@ -1,5 +1,15 @@
 # Connect-to-WhatsApp runbook
 
+> **Superseded architecture note (2026-07-22).** The two-agent /
+> two-number design this runbook sets up is retired by the Datastore
+> rebuild: one agent on one number, doctor-vs-patient privilege resolved
+> from the sender identity, no Environments and no database credentials.
+> Parts 1–3 (Meta Business portfolio, Meta app, Channel App, webhook)
+> remain the accurate reference for the Meta side; Parts 4–7 describe
+> the legacy stack only, whose manifests have been removed from this
+> repo (git history holds them). For the current architecture and the
+> migration, follow [cutover-runbook.md](cutover-runbook.md).
+
 Step-by-step operator guide to put both clinic assistants live on WhatsApp:
 the **patient assistant** on the clinic's public number and the **doctor
 assistant** on a private admin number. Follow it top to bottom; every

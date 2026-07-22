@@ -1,0 +1,190 @@
+# The clinic's records — the ONLY data artifact behind the assistant.
+#
+# This one file replaces the entire managed-store stack of the first
+# architecture: schema/clinic.sql, the Supabase project, two database
+# roles with hand-edited passwords, and two Stigmer Environments. Apply
+# it with `stigmer apply -f` and the platform materializes the
+# collections, enforces every constraint below on every write, and
+# resolves who may do what from the channel-verified sender identity.
+#
+# The governing rule is unchanged: prompts shape behavior; constraints
+# and grants enforce security. Anything that must hold 100% of the time
+# lives HERE, never in agent instructions.
+#
+# Authorization model (single agent, single number):
+#   - The doctor's WhatsApp number is bound to the `admin` role. The
+#     binding value is Meta's wa_id — DIGITS ONLY, NO leading `+`
+#     (e.g. "919800000001"). A `+` makes the binding silently never
+#     match and the doctor would be served as a patient.
+#   - Every other sender falls to `default_role: patient`.
+#   - Denied verbs produce clean, relayable errors ("you are not
+#     allowed to update records in schedules") that the agent
+#     apologizes with — a patient sweet-talking the agent into a
+#     schedule write gets a permission error, not a prompt-rule breach.
+apiVersion: agentic.stigmer.ai/v1
+kind: Datastore
+metadata:
+  name: clinic-records
+  org: your-org # <- your Stigmer org slug
+spec:
+  description: >
+    Appointment records for the clinic assistant: the weekly schedule,
+    date-specific exceptions, and patient bookings.
+  # Bound as the CEL constant `tz` in every constraint below; also the
+  # zone in which booking timestamps resolve to local dates and times.
+  timezone: Asia/Kolkata
+  authorization:
+    roles:
+      - name: admin
+      - name: patient
+    bindings:
+      # The doctor's number. wa_id format: digits only, no `+`.
+      - subject:
+          channel_sender:
+            sender_kind: whatsapp_phone
+            value: "<DOCTOR_WA_ID>"
+        role: admin
+    # Everyone who is not the doctor is a patient — including console
+    # test sessions, which go through the same deny-by-default layer.
+    default_role: patient
+
+  collections:
+    # ── Weekly recurring sessions (a day can have several) ─────────────
+    - name: schedules
+      description: Weekly recurring clinic sessions, e.g. Mon 10:00-13:00.
+      fields:
+        - name: day_of_week
+          type: integer
+          required: true
+          description: 0=Sunday through 6=Saturday.
+        - name: session_start
+          type: time
+          required: true
+        - name: session_end
+          type: time
+          required: true
+      checks:
+        - name: valid_weekday
+          expression: "this.day_of_week >= 0 && this.day_of_week <= 6"
+          message: "day_of_week must be 0 (Sunday) through 6 (Saturday)"
+        - name: start_before_end
+          expression: "this.session_start < this.session_end"
+          message: "a session must start before it ends"
+      uniques:
+        - name: one_session_per_start
+          fields: [day_of_week, session_start]
+          message: "that day already has a session starting at that time"
+      grants:
+        - role: patient
+          verbs: [read]
+        - role: admin
+          verbs: [read, insert, update, delete]
+
+    # ── Date-specific overrides (day off, vacation, partial closure) ───
+    - name: schedule_exceptions
+      description: Date-specific schedule overrides — a full day off or a partial closure window.
+      fields:
+        - name: exception_date
+          type: date
+          required: true
+        - name: closed_all_day
+          type: bool
+          required: true
+          default: true
+        - name: closed_start
+          type: time
+        - name: closed_end
+          type: time
+        - name: reason
+          type: string
+      checks:
+        # A partial closure must say when; an all-day closure must not.
+        - name: window_consistent
+          expression: >-
+            (this.closed_all_day && this.closed_start == null
+              && this.closed_end == null)
+            || (!this.closed_all_day && this.closed_start != null
+              && this.closed_end != null
+              && this.closed_start < this.closed_end)
+          message: "a partial closure needs a start and end time; an all-day closure must not set them"
+      uniques:
+        # One exception row per date keeps "what changed" simple.
+        - name: one_exception_per_date
+          fields: [exception_date]
+          message: "that date already has an exception; update it instead"
+      grants:
+        - role: patient
+          verbs: [read]
+        - role: admin
+          verbs: [read, insert, update, delete]
+
+    # ── Bookings ────────────────────────────────────────────────────────
+    - name: bookings
+      description: Patient appointments. Attribution (who booked) is the server-stamped created_by, never a typed-in value.
+      fields:
+        - name: slot_start
+          type: timestamp
+          required: true
+        - name: patient_name
+          type: string
+          required: true
+        # Operational contact info for the doctor's day list — NOT
+        # attribution. The verified booker identity is the
+        # server-stamped created_by.
+        - name: patient_phone
+          type: string
+        - name: status
+          type: string
+          required: true
+          default: confirmed
+          enum_values: [confirmed, cancelled]
+      uniques:
+        # The double-booking invariant: at most one CONFIRMED booking
+        # per slot. Cancelled rows free the slot.
+        - name: one_confirmed_per_slot
+          fields: [slot_start]
+          where: { field: status, equals: confirmed }
+          message: "that slot is already booked"
+      checks:
+        # Appointments start on the hour or half hour, clinic-local.
+        - name: half_hour_grid
+          expression: >-
+            this.slot_start.getMinutes(tz) in [0, 30]
+            && this.slot_start.getSeconds() == 0
+          message: "appointments start on the hour or half hour"
+      exists:
+        # The hours-bounds invariant, half 1: some weekly session covers
+        # the slot's clinic-local weekday and time of day. Replaces the
+        # old assert_booking_inside_clinic_hours() trigger.
+        - name: inside_clinic_hours
+          when: "this.status == 'confirmed'"
+          collection: schedules
+          where: >-
+            that.day_of_week == this.slot_start.getDayOfWeek(tz)
+            && timeOfDay(this.slot_start, tz) >= that.session_start
+            && timeOfDay(this.slot_start, tz) < that.session_end
+          message: "that time is outside clinic hours"
+      not_exists:
+        # Half 2: no exception closes the clinic at that moment.
+        - name: not_on_closed_date
+          when: "this.status == 'confirmed'"
+          collection: schedule_exceptions
+          where: >-
+            that.exception_date == localDate(this.slot_start, tz)
+            && (that.closed_all_day
+                || (timeOfDay(this.slot_start, tz) >= that.closed_start
+                    && timeOfDay(this.slot_start, tz) < that.closed_end))
+          message: "the clinic is closed at that time"
+      grants:
+        # Patients read all bookings (availability math needs the taken
+        # slots) and book; they may change or cancel ONLY their own —
+        # `own` resolves against the server-stamped created_by, so a
+        # patient cannot touch another patient's booking no matter what
+        # they tell the agent.
+        - role: patient
+          verbs: [read, insert]
+        - role: patient
+          verbs: [update, delete]
+          scope: own
+        - role: admin
+          verbs: [read, insert, update, delete]

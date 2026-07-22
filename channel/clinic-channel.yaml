@@ -1,0 +1,33 @@
+# The clinic's ONE WhatsApp number -> the ONE clinic assistant.
+#
+# There is no second number and no second channel anymore: the doctor
+# texts the same number as patients, and the clinic-records datastore
+# resolves their role from the channel-verified sender identity (the
+# doctor's wa_id is bound to `admin` in datastore/clinic-records.yaml).
+#
+# There are also no environment_refs: the assistant carries no database
+# credentials. Record access rides the execution's own session-scoped
+# credential, resolved server-side per call.
+#
+# Fill the placeholders per docs/connect-whatsapp-runbook.md, apply with
+# `stigmer apply -f`, then complete the number verification through the
+# console's connect flow.
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentChannel
+metadata:
+  name: clinic-whatsapp
+  org: your-org # <- your Stigmer org slug (same value in every org field below)
+spec:
+  agent_ref:
+    kind: agent
+    org: your-org
+    slug: clinic-assistant
+  enabled: true
+  whatsapp:
+    # Meta app -> API Setup: the numeric ID next to the clinic's number,
+    # NOT the phone number itself.
+    phone_number_id: "<CLINIC_NUMBER_PHONE_NUMBER_ID>"
+  app_ref:
+    kind: channel_app
+    org: your-org
+    slug: <your-meta-channel-app> # Stigmer console -> Settings -> Channel Apps

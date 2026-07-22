@@ -4,16 +4,17 @@ A WhatsApp assistant built on [Stigmer](https://stigmer.ai) that helps patients
 check a doctor's availability and book appointments — right from WhatsApp, with
 no new app for the patient or the doctor.
 
-This is the first end-to-end showcase of **Stigmer Channels**: an Agent connected
-to a WhatsApp Business number, aimed at local businesses (starting with small
-clinics) that want an always-on assistant on the messaging app their customers
-already use.
+This is the reference **"write YAML, get an assistant"** pattern: one Agent
+manifest, one Datastore manifest, one WhatsApp channel. No database signup, no
+credentials, no code, nothing hosted by the assistant builder.
 
 ## What it does (v1)
 
 - Answers patient questions about the doctor's timings and availability
 - Books an appointment slot in conversation ("book me Friday evening")
 - Knows the doctor's weekly schedule and exceptions (day off, vacation)
+- Lets the doctor manage the schedule and read the day's bookings — on the
+  same number, in plain language
 
 Out of scope for v1: patient history, reminders/outbound messages, payments,
 multiple doctors on one number.
@@ -21,56 +22,61 @@ multiple doctors on one number.
 ## How it works
 
 The assistant is a Stigmer Agent served through a WhatsApp `AgentChannel`.
-Patients message the clinic's WhatsApp Business number; the Agent answers with
-schedule-aware responses and books slots through its tools. See the
-[Connect an Agent to WhatsApp](https://stigmer.ai/docs/guides/channels/connect-whatsapp)
-guide for the underlying channel mechanics.
+Its records live in a Stigmer `Datastore` — collections, constraints, and
+role grants declared in YAML and enforced by the platform on every write.
+See [Connect an Agent to WhatsApp](https://stigmer.ai/docs/guides/channels/connect-whatsapp)
+for the channel mechanics.
 
-## Architecture (decided)
+## Architecture
 
-The governing rule: **prompts shape behavior; credentials and constraints
+The governing rule: **prompts shape behavior; constraints and grants
 enforce security.** Anything that must hold 100% of the time never lives in
 agent instructions.
 
-- **Two agents, two WhatsApp numbers.** Patients text the clinic's public
-  number and reach the *patient assistant* (availability + booking). The
-  doctor texts a private admin number and reaches the *doctor assistant*
-  (schedule management, day's bookings). The number IS the role boundary —
-  Meta verifies the sender, the number selects the agent.
-- **Credential = capability.** Both agents share one managed Postgres
-  (Supabase), but each channel's Environment carries a connection URL for a
-  different database role: `patient_role` can only read the schedule and
-  insert bookings; `doctor_role` manages the schedule. The patient agent
-  *physically cannot* modify the schedule, whatever the model does.
-- **Constraint = invariant.** Double-booking prevention and clinic-hours
-  bounds are database constraints in `schema/clinic.sql`, not prompt text.
-- **No code, anywhere.** The whole assistant is YAML manifests + one
-  declarative schema file. Nothing is built or hosted by the assistant
-  builder.
-- **The doctor manages the schedule over WhatsApp itself** — texting their
-  assistant in plain language ("closed this Thursday"), with every change
-  confirmed before it is written.
-- **Conversation is never the system of record**; tools are the only write
-  path, and the store behind them is swappable per customer (e.g., Google
-  Calendar for clinics that already use one).
-- **Attribution rides platform-verified identity.** Stigmer surfaces the
-  sender's channel-verified WhatsApp number to the agent, so bookings are
-  recorded against the real sender — patients are never asked to type
-  (or able to fake) their own number.
+- **One agent, one WhatsApp number.** Patients and the doctor text the same
+  clinic number. The platform verifies who is texting; the datastore binds
+  the doctor's number to the `admin` role and everyone else defaults to
+  `patient`. The agent discovers what the current caller may do by calling
+  `describe_datastore` — no "if doctor" branches in the prompt.
+- **Grant = capability.** A patient asking the agent to change the schedule
+  gets a clean permission error from the store, whatever the model does.
+  Patients can cancel only bookings they created — ownership is the
+  server-stamped attribution, never a claim.
+- **Constraint = invariant.** Double-booking prevention, clinic-hours
+  bounds, and closed-date checks are declared in
+  `datastore/clinic-records.yaml` and enforced inside every write
+  transaction, with polite, relayable rejection messages.
+- **Zero credentials.** No database, no connection URLs, no Environments:
+  record access rides the execution's own platform credential, resolved
+  server-side per call. The record tools are approval-free by construction —
+  nothing to un-gate.
+- **Conversation is never the system of record**; the record tools are the
+  only write path, and the store behind them is swappable per customer
+  (e.g., Google Calendar via MCP for clinics that already use one).
+- **Attribution rides platform-verified identity.** Every booking carries
+  the channel-verified sender identity, server-stamped. Patients are never
+  asked to type (or able to fake) their own number.
 
 ## Repository layout
 
 ```
-agent/patient/  Patient assistant: manifest + instructions (public number)
-agent/doctor/   Doctor assistant: manifest + instructions (private admin number)
-channel/        Two AgentChannel + two Environment manifests
-schema/         clinic.sql — tables, constraints, roles, grants, bootstrap data
+datastore/      clinic-records.yaml — collections, constraints, roles, grants
+agent/          clinic-assistant.yaml — the one agent (patients + doctor)
+channel/        clinic-channel.yaml — the clinic's WhatsApp number
+scripts/        seed-schedule.ts (seed + verify), acceptance-matrix.ts,
+                clinic-records.local.yaml (local-acceptance variant)
 conversations/  Conversation design: happy paths and edge-case scripts
-docs/           Friction log; connect-whatsapp-runbook.md — operator guide to
-                put both numbers live (Meta app, Channel App, environments,
-                connect flow, live acceptance tests)
+docs/           cutover-runbook.md — move from the legacy stack to this one
+                connect-whatsapp-runbook.md — Meta app / number setup
+                friction-log.md — the requirements record for the platform
 ```
+
+The first architecture (two agents, two numbers, Supabase with per-role
+credentials) has been removed from this repo; its manifests and
+`schema/clinic.sql` live in git history. The deployed legacy stack is
+decommissioned by the cutover runbook's final step.
 
 ## Status
 
-Early development. The team is building and dogfooding the first version.
+Rebuilt on the Stigmer Datastore primitive. The legacy Supabase-backed
+pilot serves live traffic until the cutover completes.

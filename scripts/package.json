@@ -1,0 +1,20 @@
+{
+  "name": "clinic-records-scripts",
+  "private": true,
+  "description": "Seed/verify scripts for the clinic-records datastore (DD-009 migration-script prototype). Requires the @stigmer/sdk release that ships the Datastore record client; against a local checkout, `npm link @stigmer/sdk @stigmer/protos` from the stigmer repo's built packages.",
+  "type": "module",
+  "scripts": {
+    "seed": "tsx seed-schedule.ts seed",
+    "verify": "tsx seed-schedule.ts verify",
+    "acceptance": "tsx acceptance-matrix.ts"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.12.0",
+    "@stigmer/protos": "*",
+    "@stigmer/sdk": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
