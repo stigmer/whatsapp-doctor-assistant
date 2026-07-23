@@ -64,7 +64,14 @@ clinic-records`, re-apply, re-run. Reset, not tracking, is the
 idempotency mechanism.
 
 The acceptance run cleans up after itself; the datastore is empty again
-when it passes.
+when it passes, so the plain delete above works. If you ran `npm run
+seed` instead (12 schedule rows), the delete is refused with a
+record-count message — that refusal is the platform protecting live
+records, not an error. Acknowledge it explicitly:
+
+```bash
+stigmer delete datastore clinic-records -f   # -f acknowledges destroying held records
+```
 
 ## Step 3 — Freeze the channel
 
@@ -125,10 +132,20 @@ From the doctor's phone:
 Run both stacks' teardown only after a soak week with no incident:
 
 - [ ] Delete the Supabase project (both role credentials die with it).
-- [ ] Delete both Environments (`clinic-patient-db`, `clinic-doctor-db`).
-- [ ] Delete the old channels (`clinic-patient-whatsapp`,
-      `clinic-doctor-whatsapp`) and both old agents
-      (`clinic-patient-assistant`, `clinic-doctor-assistant`).
+- [ ] Tear down the deployed legacy platform resources. Order matters:
+      channels first, then the agents they served, then the
+      Environments they referenced — reference-holders go before the
+      resources they point at, so nothing ever dangles:
+
+```bash
+stigmer delete agent-channel clinic-patient-whatsapp -f
+stigmer delete agent-channel clinic-doctor-whatsapp -f
+stigmer delete agent clinic-patient-assistant -f
+stigmer delete agent clinic-doctor-assistant -f
+stigmer delete environment clinic-patient-db -f
+stigmer delete environment clinic-doctor-db -f
+```
+
 - [ ] Release the private admin number (or keep it for the next dogfood).
 
 The legacy manifests and `schema/clinic.sql` are already removed from
