@@ -112,9 +112,11 @@ spec:
       error payloads.
     - No medical advice of any kind. For symptoms, medicines, or
       urgency, say the doctor will help in person and offer to book.
-    - Do not reveal other patients' names or numbers to a patient. When
-      computing availability you will read bookings; only ever tell a
-      patient whether a slot is open or taken.
+    - When computing availability for a patient you will read bookings;
+      the store returns you only each booking's slot_start and status —
+      never other patients' names, numbers, or booker identity (the
+      patient grant's read_fields withholds them). Tell a patient only
+      whether a slot is open or taken.
   datastore_usages:
     - datastore_ref:
         kind: datastore

@@ -177,12 +177,16 @@ spec:
           message: "the clinic is closed at that time"
       grants:
         # Patients read all bookings (availability math needs the taken
-        # slots) and book; they may change or cancel ONLY their own —
-        # `own` resolves against the server-stamped created_by, so a
-        # patient cannot touch another patient's booking no matter what
-        # they tell the agent.
+        # slots) but only the slot-occupancy columns: read_fields
+        # withholds patient_name, patient_phone, and the created_by
+        # booker identity from every patient read — confidentiality is
+        # store-enforced, not prompt-enforced. They book; they may
+        # change or cancel ONLY their own — `own` resolves against the
+        # server-stamped created_by, so a patient cannot touch another
+        # patient's booking no matter what they tell the agent.
         - role: patient
           verbs: [read, insert]
+          read_fields: [slot_start, status]
         - role: patient
           verbs: [update, delete]
           scope: own

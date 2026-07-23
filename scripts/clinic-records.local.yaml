@@ -154,8 +154,12 @@ spec:
                     && timeOfDay(this.slot_start, tz) < that.closed_end))
           message: "the clinic is closed at that time"
       grants:
+        # Mirrors the production manifest: patient reads are
+        # field-scoped to slot occupancy (store-enforced
+        # confidentiality, dont-dos/002).
         - role: patient
           verbs: [read, insert]
+          read_fields: [slot_start, status]
         - role: patient
           verbs: [update, delete]
           scope: own
