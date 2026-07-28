@@ -191,14 +191,14 @@ async function main(): Promise<void> {
     "day_of_week must be 0 (Sunday) through 6 (Saturday)",
   );
 
-  // 12. describe: local principal (admin binding) sees all four verbs on schedules.
+  // 12. describe: local principal (doctor binding) sees all four verbs on schedules.
   const description = await stigmer.datastore.describeDatastore(
     create(DescribeDatastoreRequestSchema, { datastore: DS, org: ORG }),
   );
   const schedules = description.collections.find((c) => c.name === "schedules");
   const verbs = (schedules?.access ?? []).length;
   if (verbs === 4) {
-    ok("describe returns caller-effective verbs (admin: 4 on schedules)");
+    ok("describe returns caller-effective verbs (doctor: 4 on schedules)");
   } else {
     bad("describe caller-effective verbs", `got ${verbs} verbs on schedules`);
   }

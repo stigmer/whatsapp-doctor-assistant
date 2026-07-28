@@ -3,7 +3,7 @@
 # There is no second number and no second channel anymore: the doctor
 # texts the same number as patients, and the clinic-records datastore
 # resolves their role from the channel-verified sender identity (the
-# doctor's wa_id is bound to `admin` in datastore/clinic-records.yaml).
+# doctor's wa_id is bound to `doctor` in datastore/clinic-records.yaml).
 #
 # There are also no environment_refs: the assistant carries no database
 # credentials. Record access rides the execution's own session-scoped

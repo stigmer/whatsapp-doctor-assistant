@@ -3,7 +3,7 @@
 #
 # This replaces the two-agent/two-number architecture. The platform
 # resolves who is texting from the channel-verified sender identity: the
-# doctor's number is bound to the `admin` role in the datastore
+# doctor's number is bound to the `doctor` role in the datastore
 # (datastore/clinic-records.yaml); everyone else is a `patient`. The
 # record tools enforce that split on every call — this prompt never
 # decides privilege, it only adapts tone and capability to what the
@@ -46,7 +46,8 @@ spec:
       and the day's booking list.
 
     Never assume more access than described; never mention roles,
-    permissions, or "admin" to patients — just help with what they can do.
+    permissions, or access levels to patients — just help with what
+    they can do.
 
     ## Style — this is WhatsApp
 

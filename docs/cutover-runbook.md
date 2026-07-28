@@ -18,7 +18,7 @@ as patients.
 | Two agents, two numbers | One agent (`clinic-assistant`), the public number |
 | Supabase project + `schema/clinic.sql` | `datastore/clinic-records.yaml`, applied like any resource |
 | Two DB roles + two Environments with connection URLs | No credentials anywhere: record access rides the platform's own session credential |
-| Privilege = which number you texted | Privilege = who is texting: the doctor's WhatsApp number is bound to `admin` in the datastore; everyone else is `patient` |
+| Privilege = which number you texted | Privilege = who is texting: the doctor's WhatsApp number is bound to `doctor` in the datastore; everyone else is `patient` |
 | `tool_approval_overrides` un-gating 9 postgres tools | Nothing to un-gate: record tools are approval-free by construction |
 | Invariants in SQL constraints + a plpgsql trigger | The same invariants declared in the datastore YAML, enforced on every write |
 
@@ -31,7 +31,7 @@ as patients.
       default org: `stigmer config get-contexts`.
 - [ ] You have the doctor's WhatsApp number in **wa_id form: digits
       only, no `+`, no spaces** (e.g. `919800000001`). A `+` makes the
-      admin binding silently never match — the doctor would be served
+      doctor binding silently never match — the doctor would be served
       as a patient.
 - [ ] Node 20+ available for the verification scripts (`scripts/`).
 
@@ -90,7 +90,7 @@ stigmer apply -f channel/clinic-channel.yaml   # public number -> clinic-assista
 ```
 
 Then the doctor texts the clinic number from their own phone (the one
-bound as `admin`) and tells the assistant their hours in plain language
+bound as `doctor`) and tells the assistant their hours in plain language
 ("I sit 10 to 1 and 5 to 8, Monday to Saturday"). The assistant
 confirms, writes the sessions, and reads the schedule back.
 
@@ -103,7 +103,7 @@ cd scripts && CLINIC_ORG=rakeshreddi098 STIGMER_API_KEY=... npm run verify
 12 rows, read back in plain words. (The `npm run seed` path exists as
 the scripted alternative and the general migration-story prototype —
 but the conversational path is the product demonstrating itself, and it
-proves the admin binding end-to-end.)
+proves the doctor binding end-to-end.)
 
 Living bookings from the pilot are **let-expire** (developer ruling):
 the handful of upcoming appointments stay on the doctor's paper/memory

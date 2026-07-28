@@ -35,7 +35,7 @@ agent instructions.
 
 - **One agent, one WhatsApp number.** Patients and the doctor text the same
   clinic number. The platform verifies who is texting; the datastore binds
-  the doctor's number to the `admin` role and everyone else defaults to
+  the doctor's number to the `doctor` role and everyone else defaults to
   `patient`. The agent discovers what the current caller may do by calling
   `describe_datastore` — no "if doctor" branches in the prompt.
 - **Grant = capability.** A patient asking the agent to change the schedule

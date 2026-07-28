@@ -12,10 +12,11 @@
 # lives HERE, never in agent instructions.
 #
 # Authorization model (single agent, single number):
-#   - The doctor's WhatsApp number is bound to the `admin` role. The
+#   - The doctor's WhatsApp number is bound to the `doctor` role. The
 #     binding value is Meta's wa_id — DIGITS ONLY, NO leading `+`
-#     (e.g. "919800000001"). A `+` makes the binding silently never
-#     match and the doctor would be served as a patient.
+#     (e.g. "919800000001"). The platform refuses a `+` (or any
+#     non-digit) at apply time, because such a binding could never
+#     match and the doctor would silently be served as a patient.
 #   - Every other sender falls to `default_role: patient`.
 #   - Denied verbs produce clean, relayable errors ("you are not
 #     allowed to update records in schedules") that the agent
@@ -35,15 +36,17 @@ spec:
   timezone: Asia/Kolkata
   authorization:
     roles:
-      - name: admin
+      - name: doctor
       - name: patient
     bindings:
       # The doctor's number. wa_id format: digits only, no `+`.
+      # Additional privileged numbers (a second doctor, clinic staff)
+      # are additional bindings to the same role — one block per number.
       - subject:
           channel_sender:
             sender_kind: whatsapp_phone
             value: "<DOCTOR_WA_ID>"
-        role: admin
+        role: doctor
     # Everyone who is not the doctor is a patient — including console
     # test sessions, which go through the same deny-by-default layer.
     default_role: patient
@@ -77,7 +80,7 @@ spec:
       grants:
         - role: patient
           verbs: [read]
-        - role: admin
+        - role: doctor
           verbs: [read, insert, update, delete]
 
     # ── Date-specific overrides (day off, vacation, partial closure) ───
@@ -115,7 +118,7 @@ spec:
       grants:
         - role: patient
           verbs: [read]
-        - role: admin
+        - role: doctor
           verbs: [read, insert, update, delete]
 
     # ── Bookings ────────────────────────────────────────────────────────
@@ -190,5 +193,5 @@ spec:
         - role: patient
           verbs: [update, delete]
           scope: own
-        - role: admin
+        - role: doctor
           verbs: [read, insert, update, delete]

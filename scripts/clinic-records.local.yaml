@@ -6,7 +6,7 @@
 #   - metadata.org is `stigmer`: the OSS record RPCs resolve slugs
 #     against the local single-tenant org only.
 #   - The authorization block binds the OSS fixed local principal
-#     (identity_account/system — every local caller) to `admin`, so the
+#     (identity_account/system — every local caller) to `doctor`, so the
 #     seed script holds the insert grant on `schedules`. The production
 #     manifest instead binds the doctor's WhatsApp number and keeps
 #     operators out of the manifest entirely (the production schedule is
@@ -27,7 +27,7 @@ spec:
   timezone: Asia/Kolkata
   authorization:
     roles:
-      - name: admin
+      - name: doctor
       - name: patient
     bindings:
       # The OSS fixed local principal — every caller on a local server.
@@ -35,7 +35,7 @@ spec:
           principal:
             kind: identity_account
             id: system
-        role: admin
+        role: doctor
     default_role: patient
 
   collections:
@@ -67,7 +67,7 @@ spec:
       grants:
         - role: patient
           verbs: [read]
-        - role: admin
+        - role: doctor
           verbs: [read, insert, update, delete]
 
     # ── Date-specific overrides (day off, vacation, partial closure) ───
@@ -103,7 +103,7 @@ spec:
       grants:
         - role: patient
           verbs: [read]
-        - role: admin
+        - role: doctor
           verbs: [read, insert, update, delete]
 
     # ── Bookings ────────────────────────────────────────────────────────
@@ -163,5 +163,5 @@ spec:
         - role: patient
           verbs: [update, delete]
           scope: own
-        - role: admin
+        - role: doctor
           verbs: [read, insert, update, delete]
